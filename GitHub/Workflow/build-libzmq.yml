@@ -1,0 +1,46 @@
+name: Build libzmq.dll (x64)
+
+# manual run or on push to main
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-windows-x64:
+    name: Build libzmq (x64) using vcpkg
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: git --version
+
+      - name: Clone vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+          cd C:\vcpkg
+          .\bootstrap-vcpkg.bat
+
+      - name: Install libzmq via vcpkg (x64)
+        run: |
+          C:\vcpkg\vcpkg.exe install libzmq:x64-windows
+
+      - name: Show installed files
+        run: |
+          dir C:\vcpkg\installed\x64-windows\bin
+          dir C:\vcpkg\installed\x64-windows\debug\bin || echo "no debug bin"
+
+      - name: Prepare output folder
+        run: |
+          mkdir output
+          copy C:\vcpkg\installed\x64-windows\bin\libzmq.dll output\ || (echo "libzmq.dll not found" & dir C:\vcpkg\installed\x64-windows\bin & exit 1)
+          dir output
+
+      - name: Upload DLL artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: libzmq-dll
+          path: output\libzmq.dll
